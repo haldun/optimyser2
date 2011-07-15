@@ -12,10 +12,11 @@ class User(db.Model):
   last_logged_in = db.DateTimeProperty()
 
   def __init__(self, *args, **kwds):
+    db.Model.__init__(self, *args, **kwds)
     password = kwds.pop('password', None)
     if password:
       self.set_password(password)
-    db.Model.__init__(self, *args, **kwds)
+
 
   def set_password(self, password):
     self.password_hash = bcrypt.hashpw(password, bcrypt.gensalt(log_rounds=1))
