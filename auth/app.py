@@ -18,13 +18,15 @@ class Application(tornado.wsgi.WSGIApplication):
   def __init__(self):
     handlers = [
       (r'/', IndexHandler),
-      (r'/login', LoginHandler),
+      (r'/signin', SigninHandler),
+      (r'/signup', SignupHandler),
+      (r'/signout', SignoutHandler),
     ]
     settings = dict(
       template_path=os.path.join(os.path.dirname(__file__), 'templates'),
       xsrf_cookies=True,
       cookie_secret="asjidoh91239jasdasdasdasdasdkja8izxc21312sjdhsa/Vo=",
-      login_url="/login",
+      login_url="/signin",
     )
     tornado.wsgi.WSGIApplication.__init__(self, handlers, **settings)
 
@@ -43,21 +45,45 @@ class IndexHandler(BaseHandler):
     self.write("welcome %s" % self.current_user)
 
 
-class LoginHandler(BaseHandler):
+class SigninHandler(BaseHandler):
   def get(self):
-    self.render('login.html', form=forms.LoginForm())
+    self.render('signin.html', form=forms.SigninForm())
 
   def post(self):
-    form = forms.LoginForm(self)
+    form = forms.SigninForm(self)
     if form.validate():
       user = models.User.authenticate(form.email.data, form.password.data)
       if user is None:
-        self.render('login.html', form=form)
+        self.render('signin.html', form=form)
       else:
         self.set_secure_cookie('user_key', str(user.key()))
         self.redirect(self.get_argument('next', '/'))
     else:
-      self.render('login.html', form=form)
+      self.render('signin.html', form=form)
+
+
+class SignupHandler(BaseHandler):
+  def get(self):
+    self.render('signup.html', form=forms.SignupForm())
+
+  def post(self):
+    form = forms.SignupForm(self)
+    if form.validate():
+      user = models.User(first_name=form.first_name.data,
+                         last_name=form.last_name.data,
+                         email=form.email.data,
+                         password=form.password.data)
+      user.put()
+      self.set_secure_cookie('user_key', str(user.key()))
+      self.redirect(self.get_argument('next', '/'))
+    else:
+      self.render('signup.html', form=form)
+
+
+class SignoutHandler(BaseHandler):
+  def get(self):
+    self.clear_cookie('user_key')
+    self.redirect(self.get_argument('next', '/'))
 
 
 def main():
