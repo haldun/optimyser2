@@ -1,3 +1,4 @@
+import binascii
 import logging
 import os
 
@@ -11,6 +12,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 import forms
 import models
 import uimodules
+import util
 
 # Constants
 IS_DEV = os.environ['SERVER_SOFTWARE'].startswith('Dev')  # Development server
@@ -23,6 +25,8 @@ class Application(tornado.wsgi.WSGIApplication):
       (r'/signup', SignupHandler),
       (r'/signout', SignoutHandler),
       (r'/create', CreateExperimentHandler),
+      (r'/test', TestExperimentHandler),
+      (r'/goal', GoalExperimentHandler),
     ]
     settings = dict(
       debug=True,
@@ -47,8 +51,6 @@ class IndexHandler(BaseHandler):
   @tornado.web.authenticated
   def get(self):
     experiment = models.Experiment.all()[0]
-    experiment.increment_original()
-    experiment.increment_goal()
     self.write(dict(a=list(experiment.get_counters())))
     # self.write("welcome %s" % self.current_user)
 
@@ -104,7 +106,10 @@ class CreateExperimentHandler(BaseHandler):
   def post(self):
     form = forms.ABExperimentForm(self)
     if form.validate():
-      exp = models.ABExperiment(user=self.current_user, **form.data)
+      exp = models.ABExperiment(
+          key_name='a' + binascii.hexlify(util._random_bytes(16)),
+          user=self.current_user,
+          **form.data)
       for alternative in form.alternatives.data:
         exp.alternative_names.append(alternative['name'])
         exp.alternative_urls.append(db.Link(alternative['url']))
@@ -112,6 +117,33 @@ class CreateExperimentHandler(BaseHandler):
       self.redirect('/')
     else:
       self.render('create.html', form=form)
+
+
+class TestExperimentHandler(BaseHandler):
+  def get(self):
+    # TODO Cache
+    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
+    # TODO Is this experiment running?
+    # TODO Is this a preview?
+    index = experiment.pick_index()
+    self.write('''(function(){
+  var createCookie = function(name,value,days) {
+    if (days) {
+      var date = new Date();
+      date.setTime(date.getTime()+(days*24*60*60*1000));
+      var expires = "; expires="+date.toGMTString();
+    }
+    else var expires = "";
+    document.cookie = name+"="+value+expires+"; path=/";
+  }
+  createCookie('opt_selected', %(index)s);
+  document.location.href="%(url)s";
+})();
+''' % dict(index=index, url=experiment.test_links[index]))
+
+
+class GoalExperimentHandler(BaseHandler):
+  pass
 
 
 def main():

@@ -1,3 +1,6 @@
+import random
+
+from google.appengine.api import memcache
 from google.appengine.ext import db
 from google.appengine.ext.db import polymodel
 
@@ -50,28 +53,32 @@ class ABExperiment(Experiment):
   created = db.DateTimeProperty(auto_now_add=True)
   updated = db.DateTimeProperty(auto_now=True)
 
-  @property
-  def alternatives(self):
-    return dict((a, b)
-                for a, b in zip(self.alternative_names, self.alternative_urls))
-
-  _links = None
+  _test_links = None
 
   @property
-  def links(self):
-    if self._links is None:
-      self._links = [self.original]
-      self._links.extend(self.alternative_urls)
-      self._links.append(self.goal)
-    return self._links
+  def test_links(self):
+    if self._test_links is None:
+      self._test_links = [self.original]
+      self._test_links.extend(self.alternative_urls)
+    return self._test_links
+
+  def pick_index(self):
+    return random.choice(range(len(self.test_links)))
 
   _counters = None
 
   def get_counters(self):
     if self._counters is None:
-      self._counters = [(i, counter.get_count(self.counter_key(i)))
-                        for i, link in enumerate(self.links)]
+      self._counters = [(i, counter.get_count(self.visit_counter_key(i)),
+                            counter.get_count(self.converted_counter_key(i)))
+                        for i, link in enumerate(self.test_links)]
     return self._counters
+
+  def visit_counter_key(self, index):
+    return self.counter_key(index, 'v')
+
+  def converted_counter_key(self, index):
+    return self.counter_key(index, 'c')
 
   def counter_key(self, index, type):
     return '%s:%s:%s' % (self.key().id(), index, type)
