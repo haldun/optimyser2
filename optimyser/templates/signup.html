@@ -1,0 +1,9 @@
+{% autoescape None %}
+<form action="" method="post">
+  {{ xsrf_form_html() }}
+
+  {% module Form(form) %}
+  <p>
+    <input type="submit">
+  </p>
+</form>

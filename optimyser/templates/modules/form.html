@@ -1,0 +1,26 @@
+{% raw xsrf_form_html() %}
+
+{% if form.errors %}
+  <div>There are some errors preventing you submitting these data.
+       Please check the form.</div>
+
+<!--  <ul class="form-errors">
+    {% for error, message in form.errors.items() %}
+      <li>{{ error }}: {{ message }}</li>
+    {% end %}
+  </ul> -->
+{% end %}
+
+{% for field in form %}
+  <div class="field {{ field.name }}">
+    {% raw field.label() %}
+    {% raw field() %}
+    {% if field.errors %}
+      <ul class="errors">
+        {% for error in field.errors %}
+          <li>{{ error }}</li>
+        {% end %}
+      </ul>
+    {% end %}
+  </div>
+{% end %}

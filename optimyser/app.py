@@ -10,6 +10,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 
 import forms
 import models
+import uimodules
 
 # Constants
 IS_DEV = os.environ['SERVER_SOFTWARE'].startswith('Dev')  # Development server
@@ -21,12 +22,15 @@ class Application(tornado.wsgi.WSGIApplication):
       (r'/signin', SigninHandler),
       (r'/signup', SignupHandler),
       (r'/signout', SignoutHandler),
+      (r'/create', CreateExperimentHandler),
     ]
     settings = dict(
+      debug=True,
       template_path=os.path.join(os.path.dirname(__file__), 'templates'),
       xsrf_cookies=True,
       cookie_secret="asjidoh91239jasdasdasdasdasdkja8izxc21312sjdhsa/Vo=",
       login_url="/signin",
+      ui_modules=uimodules,
     )
     tornado.wsgi.WSGIApplication.__init__(self, handlers, **settings)
 
@@ -42,7 +46,11 @@ class BaseHandler(tornado.web.RequestHandler):
 class IndexHandler(BaseHandler):
   @tornado.web.authenticated
   def get(self):
-    self.write("welcome %s" % self.current_user)
+    experiment = models.Experiment.all()[0]
+    experiment.increment_original()
+    experiment.increment_goal()
+    self.write(dict(a=list(experiment.get_counters())))
+    # self.write("welcome %s" % self.current_user)
 
 
 class SigninHandler(BaseHandler):
@@ -84,6 +92,26 @@ class SignoutHandler(BaseHandler):
   def get(self):
     self.clear_cookie('user_key')
     self.redirect(self.get_argument('next', '/'))
+
+
+class CreateExperimentHandler(BaseHandler):
+  @tornado.web.authenticated
+  def get(self):
+    form = forms.ABExperimentForm()
+    self.render('create.html', form=form)
+
+  @tornado.web.authenticated
+  def post(self):
+    form = forms.ABExperimentForm(self)
+    if form.validate():
+      exp = models.ABExperiment(user=self.current_user, **form.data)
+      for alternative in form.alternatives.data:
+        exp.alternative_names.append(alternative['name'])
+        exp.alternative_urls.append(db.Link(alternative['url']))
+      exp.put()
+      self.redirect('/')
+    else:
+      self.render('create.html', form=form)
 
 
 def main():

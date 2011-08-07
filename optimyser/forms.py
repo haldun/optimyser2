@@ -19,9 +19,20 @@ class SigninForm(BaseForm):
 
 class SignupForm(BaseForm):
   first_name = TextField('first name')
-  last_name = TextField('first name')
+  last_name = TextField('last name')
   email = TextField('email')
   password = PasswordField(
       'password',
       [Required(), EqualTo('password_confirmation', message='Passwords must match')])
   password_confirmation = PasswordField('password confirmation')
+
+
+class AlternativeURL(Form):
+  name = TextField('name', [Required()])
+  url = TextField('url', [Required()])
+
+class ABExperimentForm(BaseForm):
+  name = TextField('name', [Required()])
+  original = TextField('original url', [Required()])
+  alternatives = FieldList(FormField(AlternativeURL), min_entries=1)
+  goal = TextField('goal url', [Required()])
