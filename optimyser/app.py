@@ -140,10 +140,11 @@ class OptionsHandler(BaseHandler):
         selected = int(selected)
       except:
         selected = -1
-    if 0 <= selected < len(experiment.test_links):
-      self.write('%s' % experiment.test_links[selected])
-    else:
-      self.write('%s' % experiment.test_links[experiment.pick_index()])
+    if not (0 <= selected < len(experiment.test_links)):
+      selected = experiment.pick_index()
+    next = experiment.test_links[selected]
+    self.set_header('Content-Type', 'text/javascript')
+    self.render('options.js', next=next, index=selected, experiment=experiment)
 
 
 class VisitHandler(BaseHandler):
@@ -157,6 +158,8 @@ class VisitHandler(BaseHandler):
     if not (0 <= selected < len(experiment.test_links)):
       return
     counter.increment('%s:%s:visit' % (experiment.key().name(), selected))
+    self.set_header('Content-Type', 'text/javascript')
+    self.write('1')
 
 
 class ConversionHandler(BaseHandler):
@@ -170,6 +173,8 @@ class ConversionHandler(BaseHandler):
     if not (0 <= selected < len(experiment.test_links)):
       return
     counter.increment('%s:%s:conversion' % (experiment.key().name(), selected))
+    self.set_header('Content-Type', 'text/javascript')
+    self.write('1')
 
 
 def main():

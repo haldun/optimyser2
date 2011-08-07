@@ -12,7 +12,8 @@ class OriginalPageCode(tornado.web.UIModule):
 
 class AlternativePageCode(tornado.web.UIModule):
   def render(self, experiment):
-    return 'alt!'
+    return self.render_string('modules/alternative_page_code.js',
+                              experiment=experiment)
 
 
 class GoalPageCode(tornado.web.UIModule):
