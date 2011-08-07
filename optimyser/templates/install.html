@@ -1,0 +1,21 @@
+<h1>Install experiment</h1>
+
+<h2>Original page</h2>
+<p>Insert the following codes to this page:</p>
+{{ experiment.original }}
+
+<textarea>{% module OriginalPageCode(experiment) %}</textarea>
+
+<h2>Variation pages</h2>
+<p>Insert the following code to each of these pages:</p>
+{% for name, url in experiment.alternatives %}
+  <li>{{ name }} - {{ url }}</li>
+{% end %}
+
+<textarea>{% module AlternativePageCode(experiment) %}</textarea>
+
+<h2>Goal page</h2>
+<p>Insert the following codes to this page:</p>
+{{ experiment.goal }}
+
+<textarea>{% module GoalPageCode(experiment) %}</textarea>

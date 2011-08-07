@@ -65,6 +65,10 @@ class ABExperiment(Experiment):
   def pick_index(self):
     return random.choice(range(len(self.test_links)))
 
+  @property
+  def alternatives(self):
+    return zip(self.alternative_names, self.alternative_urls)
+
   _counters = None
 
   def get_counters(self):

@@ -9,6 +9,7 @@ from tornado.web import url
 from google.appengine.ext import db
 from google.appengine.ext.webapp.util import run_wsgi_app
 
+import counter
 import forms
 import models
 import uimodules
@@ -20,13 +21,15 @@ IS_DEV = os.environ['SERVER_SOFTWARE'].startswith('Dev')  # Development server
 class Application(tornado.wsgi.WSGIApplication):
   def __init__(self):
     handlers = [
-      (r'/', IndexHandler),
-      (r'/signin', SigninHandler),
-      (r'/signup', SignupHandler),
-      (r'/signout', SignoutHandler),
-      (r'/create', CreateExperimentHandler),
-      (r'/test', TestExperimentHandler),
-      (r'/goal', GoalExperimentHandler),
+      url(r'/', IndexHandler),
+      url(r'/signin', SigninHandler),
+      url(r'/signup', SignupHandler),
+      url(r'/signout', SignoutHandler),
+      url(r'/create', CreateExperimentHandler),
+      url(r'/install/([^/]+)', InstallExperimentHandler, name='install'),
+      url(r'/options.js', OptionsHandler, name='options'),
+      url(r'/v', VisitHandler, name='visit'),
+      url(r'/c', ConversionHandler, name='conversion'),
     ]
     settings = dict(
       debug=True,
@@ -114,36 +117,59 @@ class CreateExperimentHandler(BaseHandler):
         exp.alternative_names.append(alternative['name'])
         exp.alternative_urls.append(db.Link(alternative['url']))
       exp.put()
-      self.redirect('/')
+      self.redirect(self.reverse_url('install', exp.key().name()))
     else:
       self.render('create.html', form=form)
 
 
-class TestExperimentHandler(BaseHandler):
+class InstallExperimentHandler(BaseHandler):
+  @tornado.web.authenticated
+  def get(self, key_name):
+    experiment = models.ABExperiment.get_by_key_name(key_name)
+    if experiment.user.key() != self.current_user.key():
+      raise tornado.web.HTTPError(403)
+    self.render('install.html', experiment=experiment)
+
+
+class OptionsHandler(BaseHandler):
   def get(self):
-    # TODO Cache
     experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
-    # TODO Is this experiment running?
-    # TODO Is this a preview?
-    index = experiment.pick_index()
-    self.write('''(function(){
-  var createCookie = function(name,value,days) {
-    if (days) {
-      var date = new Date();
-      date.setTime(date.getTime()+(days*24*60*60*1000));
-      var expires = "; expires="+date.toGMTString();
-    }
-    else var expires = "";
-    document.cookie = name+"="+value+expires+"; path=/";
-  }
-  createCookie('opt_selected', %(index)s);
-  document.location.href="%(url)s";
-})();
-''' % dict(index=index, url=experiment.test_links[index]))
+    selected = self.get_argument('s', None)
+    if selected is not None:
+      try:
+        selected = int(selected)
+      except:
+        selected = -1
+    if 0 <= selected < len(experiment.test_links):
+      self.write('%s' % experiment.test_links[selected])
+    else:
+      self.write('%s' % experiment.test_links[experiment.pick_index()])
 
 
-class GoalExperimentHandler(BaseHandler):
-  pass
+class VisitHandler(BaseHandler):
+  def get(self):
+    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
+    selected = self.get_argument('s')
+    try:
+      selected = int(selected)
+    except:
+      return
+    if not (0 <= selected < len(experiment.test_links)):
+      return
+    counter.increment('%s:%s:visit' % (experiment.key().name(), selected))
+
+
+class ConversionHandler(BaseHandler):
+  def get(self):
+    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
+    selected = self.get_argument('s')
+    try:
+      selected = int(selected)
+    except:
+      return
+    if not (0 <= selected < len(experiment.test_links)):
+      return
+    counter.increment('%s:%s:conversion' % (experiment.key().name(), selected))
 
 
 def main():
