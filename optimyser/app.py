@@ -6,6 +6,7 @@ import tornado.web
 import tornado.wsgi
 from tornado.web import url
 
+from google.appengine.api import memcache
 from google.appengine.ext import db
 from google.appengine.ext.webapp.util import run_wsgi_app
 
@@ -53,11 +54,8 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class IndexHandler(BaseHandler):
-  @tornado.web.authenticated
   def get(self):
-    experiment = models.ABExperiment.all()[0]
-    self.write(dict(a=list(experiment.get_counters())))
-    # self.write("welcome %s" % self.current_user)
+    self.write("optimyser")
 
 
 class HomeHandler(BaseHandler):
@@ -152,7 +150,13 @@ class InstallExperimentHandler(BaseHandler):
 
 class JSHandler(BaseHandler):
   def prepare(self):
-    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
+    key_name = self.get_argument('e')
+    cache_key = 'experiment:%s' % key_name
+    experiment = memcache.get(cache_key)
+    if experiment is None:
+      experiment = models.ABExperiment.get_by_key_name(key_name)
+      if not memcache.set(cache_key, experiment):
+        logging.error("Cannot set experiment into the memcache")
     if experiment is None:
       raise tornado.web.HTTPError(404)
     self.experiment = experiment
