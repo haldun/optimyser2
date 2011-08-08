@@ -30,6 +30,7 @@ class Application(tornado.wsgi.WSGIApplication):
       url(r'/report/([^/]+)', ReportHandler, name='report'),
       url(r'/create', CreateExperimentHandler),
       url(r'/install/([^/]+)', InstallExperimentHandler, name='install'),
+      url(r'/preview/([^/]+)', PreviewExperimentHandler, name='preview'),
       url(r'/options.js', OptionsHandler, name='options'),
       url(r'/v', VisitHandler, name='visit'),
       url(r'/c', ConversionHandler, name='conversion'),
@@ -58,22 +59,7 @@ class IndexHandler(BaseHandler):
     self.write("optimyser")
 
 
-class HomeHandler(BaseHandler):
-  @tornado.web.authenticated
-  def get(self):
-    experiments = models.Experiment.all().filter('user =', self.current_user)
-    self.render('home.html', experiments=experiments)
-
-
-class ReportHandler(BaseHandler):
-  @tornado.web.authenticated
-  def get(self, key_name):
-    experiment = models.ABExperiment.get_by_key_name(key_name)
-    if experiment.user.key() != self.current_user.key():
-      raise tornado.web.HTTPError(403)
-    self.write(dict(r=experiment.get_counters()))
-    # self.render('report.html', experiment=experiment)
-
+# Authentication handlers
 
 class SigninHandler(BaseHandler):
   def get(self):
@@ -116,6 +102,15 @@ class SignoutHandler(BaseHandler):
     self.redirect(self.get_argument('next', '/'))
 
 
+# Dashboard handlers
+
+class HomeHandler(BaseHandler):
+  @tornado.web.authenticated
+  def get(self):
+    experiments = models.Experiment.all().filter('user =', self.current_user)
+    self.render('home.html', experiments=experiments)
+
+
 class CreateExperimentHandler(BaseHandler):
   @tornado.web.authenticated
   def get(self):
@@ -147,6 +142,28 @@ class InstallExperimentHandler(BaseHandler):
       raise tornado.web.HTTPError(403)
     self.render('install.html', experiment=experiment)
 
+
+class ReportHandler(BaseHandler):
+  # TODO Implement me
+  @tornado.web.authenticated
+  def get(self, key_name):
+    experiment = models.ABExperiment.get_by_key_name(key_name)
+    if experiment.user.key() != self.current_user.key():
+      raise tornado.web.HTTPError(403)
+    self.write(dict(r=experiment.get_counters()))
+    # self.render('report.html', experiment=experiment)
+
+
+class PreviewExperimentHandler(BaseHandler):
+  # TODO Implement me
+  @tornado.web.authenticated
+  def get(self, key_name):
+    experiment = models.ABExperiment.get_by_key_name(key_name)
+    if experiment.user.key() != self.current_user.key():
+      raise tornado.web.HTTPError(403)
+
+
+# Counter handlers
 
 class JSHandler(BaseHandler):
   def prepare(self):
