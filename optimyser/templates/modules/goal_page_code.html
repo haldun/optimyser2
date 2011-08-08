@@ -1,3 +1,5 @@
+<!-- Optimyser Script -->
+<script>
 (function(){
   var days = 360;
   var id='{{ experiment.key().name() }}';
@@ -21,27 +23,27 @@
   	return null;
   };
 
+  var id = "{{ experiment.key().name() }}";
   var exp_id = readCookie("opt_e");
-  if (exp_id === null) {
-    return;
-  }
-
   var exp_index = readCookie("opt_i");
-  if (exp_index === null) {
-    return;
-  }
-
   var visited = readCookie(exp_id);
-  if (visited != null) {
-    return;
+
+  if (exp_id && exp_index && visited) {
+    if (visited == 'g') {
+      return;
+    }
+    if (visited != exp_index) {
+      return;
+    }
+    var g = document.createElement('script');
+    g.type = 'text/javascript';
+    g.async = true;
+    g.src = '//{{ request.host }}{{ reverse_url("conversion") }}?e=' + id +
+            '&s=' + exp_index;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(g, s);
+    createCookie(id, 'g');
   }
-
-  createCookie(exp_id, exp_index);
-
-  document.write('<sc' + 'ript src="' +
-    '//{{ request.host }}{{ reverse_url('visit') }}?e=' + id +
-    '&s=' + (exp_index ? exp_index : '') +
-    '"></sc'+'ript>');
-
-
 })();
+</script>
+<!-- End of Optimyser Script -->

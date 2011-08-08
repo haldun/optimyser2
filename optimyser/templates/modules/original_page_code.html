@@ -1,0 +1,15 @@
+<!-- Optimyser Script -->
+<script>
+(function(id){
+  var readCookie=function(b){b+="=";for(var d=document.cookie.split(";"),c=0;c<d.length;c++)
+  {for(var a=d[c];a.charAt(0)==" ";)a=a.substring(1,a.length);if(a.indexOf(b)==0)
+  return a.substring(b.length,a.length)}return null};
+  var selected_index = readCookie(id);
+  document.write('<sc' + 'ript src="' +
+    '//{{ request.host }}{{ reverse_url('options') }}?e=' + id +
+    '&h=' + escape(document.location.hash.substr(1)) +
+    '&s=' + (selected_index ? selected_index : '') +
+    '"></sc'+'ript>');
+})('{{ experiment.key().name() }}');
+</script>
+<!-- End of Optimyser Script -->

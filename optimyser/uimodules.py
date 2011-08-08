@@ -7,15 +7,18 @@ class Form(tornado.web.UIModule):
 
 class OriginalPageCode(tornado.web.UIModule):
   def render(self, experiment):
-    return self.render_string('modules/original_page_code.js',
-                              experiment=experiment).replace('\n', '')
+    return self.render_string('modules/original_page_code.html',
+                              experiment=experiment)
+
 
 class AlternativePageCode(tornado.web.UIModule):
   def render(self, experiment):
-    return self.render_string('modules/alternative_page_code.js',
+    return self.render_string('modules/alternative_page_code.html',
                               experiment=experiment)
 
 
 class GoalPageCode(tornado.web.UIModule):
   def render(self, experiment):
-    return 'goal page!'
+    return self.render_string('modules/goal_page_code.html',
+                              experiment=experiment)
+

@@ -34,5 +34,6 @@ class AlternativeURL(Form):
 class ABExperimentForm(BaseForm):
   name = TextField('name', [Required()])
   original = TextField('original url', [Required()])
-  alternatives = FieldList(FormField(AlternativeURL), min_entries=1)
+  alternatives = FieldList(FormField(AlternativeURL),
+                           min_entries=1, max_entries=10)
   goal = TextField('goal url', [Required()])

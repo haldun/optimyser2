@@ -25,6 +25,8 @@ class Application(tornado.wsgi.WSGIApplication):
       url(r'/signin', SigninHandler),
       url(r'/signup', SignupHandler),
       url(r'/signout', SignoutHandler),
+      url(r'/home', HomeHandler, name='home'),
+      url(r'/report/([^/]+)', ReportHandler, name='report'),
       url(r'/create', CreateExperimentHandler),
       url(r'/install/([^/]+)', InstallExperimentHandler, name='install'),
       url(r'/options.js', OptionsHandler, name='options'),
@@ -53,9 +55,26 @@ class BaseHandler(tornado.web.RequestHandler):
 class IndexHandler(BaseHandler):
   @tornado.web.authenticated
   def get(self):
-    experiment = models.Experiment.all()[0]
+    experiment = models.ABExperiment.all()[0]
     self.write(dict(a=list(experiment.get_counters())))
     # self.write("welcome %s" % self.current_user)
+
+
+class HomeHandler(BaseHandler):
+  @tornado.web.authenticated
+  def get(self):
+    experiments = models.Experiment.all().filter('user =', self.current_user)
+    self.render('home.html', experiments=experiments)
+
+
+class ReportHandler(BaseHandler):
+  @tornado.web.authenticated
+  def get(self, key_name):
+    experiment = models.ABExperiment.get_by_key_name(key_name)
+    if experiment.user.key() != self.current_user.key():
+      raise tornado.web.HTTPError(403)
+    self.write(dict(r=experiment.get_counters()))
+    # self.render('report.html', experiment=experiment)
 
 
 class SigninHandler(BaseHandler):
@@ -131,49 +150,50 @@ class InstallExperimentHandler(BaseHandler):
     self.render('install.html', experiment=experiment)
 
 
-class OptionsHandler(BaseHandler):
-  def get(self):
+class JSHandler(BaseHandler):
+  def prepare(self):
     experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
+    if experiment is None:
+      raise tornado.web.HTTPError(404)
+    self.experiment = experiment
+    self.set_header('Content-Type', 'text/javascript')
+
+  def get_selected(self):
     selected = self.get_argument('s', None)
     if selected is not None:
       try:
         selected = int(selected)
       except:
         selected = -1
-    if not (0 <= selected < len(experiment.test_links)):
-      selected = experiment.pick_index()
-    next = experiment.test_links[selected]
-    self.set_header('Content-Type', 'text/javascript')
-    self.render('options.js', next=next, index=selected, experiment=experiment)
+    if not (0 <= selected < len(self.experiment.test_links)):
+      return None
+    return selected
 
 
-class VisitHandler(BaseHandler):
+class OptionsHandler(JSHandler):
   def get(self):
-    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
-    selected = self.get_argument('s')
-    try:
-      selected = int(selected)
-    except:
+    selected = self.get_selected()
+    if selected is None:
+      selected = self.experiment.pick_index()
+    next = self.experiment.test_links[selected]
+    self.render('options.js', next=next, index=selected, experiment=self.experiment)
+
+
+class VisitHandler(JSHandler):
+  def get(self):
+    selected = self.get_selected()
+    if selected is None:
       return
-    if not (0 <= selected < len(experiment.test_links)):
-      return
-    counter.increment('%s:%s:visit' % (experiment.key().name(), selected))
-    self.set_header('Content-Type', 'text/javascript')
+    counter.increment('%s:%s:visit' % (self.experiment.key().name(), selected))
     self.write('1')
 
 
-class ConversionHandler(BaseHandler):
+class ConversionHandler(JSHandler):
   def get(self):
-    experiment = models.ABExperiment.get_by_key_name(self.get_argument('e'))
-    selected = self.get_argument('s')
-    try:
-      selected = int(selected)
-    except:
+    selected = self.get_selected()
+    if selected is None:
       return
-    if not (0 <= selected < len(experiment.test_links)):
-      return
-    counter.increment('%s:%s:conversion' % (experiment.key().name(), selected))
-    self.set_header('Content-Type', 'text/javascript')
+    counter.increment('%s:%s:conversion' % (self.experiment.key().name(), selected))
     self.write('1')
 
 

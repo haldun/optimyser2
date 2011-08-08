@@ -29,6 +29,7 @@ var index = {{ index }};
 createCookie('opt_e', "{{ experiment.key().name() }}");
 createCookie('opt_i', "{{ index }}");
 
-document.location.href = "{{ next }}";
-
+if (document.location.href != "{{ next }}") {
+  document.location.href = "{{ next }}";
+}
 })();
