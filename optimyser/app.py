@@ -159,6 +159,9 @@ class JSHandler(BaseHandler):
         logging.error("Cannot set experiment into the memcache")
     if experiment is None:
       raise tornado.web.HTTPError(404)
+    if not experiment.is_running:
+      # TODO Handle preview case here
+      raise tornado.web.HTTPError(404)
     self.experiment = experiment
     self.set_header('Content-Type', 'text/javascript')
 
@@ -180,7 +183,8 @@ class OptionsHandler(JSHandler):
     if selected is None:
       selected = self.experiment.pick_index()
     next = self.experiment.test_links[selected]
-    self.render('options.js', next=next, index=selected, experiment=self.experiment)
+    self.render('options.js', next=next, index=selected,
+                experiment=self.experiment)
 
 
 class VisitHandler(JSHandler):

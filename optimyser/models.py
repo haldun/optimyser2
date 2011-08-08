@@ -42,6 +42,7 @@ class User(db.Model):
 class Experiment(polymodel.PolyModel):
   user = db.ReferenceProperty(User, collection_name='ab_experiments')
   name = db.StringProperty(required=True)
+  is_running = db.BooleanProperty(default=False)
 
 
 class ABExperiment(Experiment):
