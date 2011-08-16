@@ -151,6 +151,13 @@ class ReportHandler(BaseHandler):
     if experiment.user.key() != self.current_user.key():
       raise tornado.web.HTTPError(403)
     self.write(dict(r=experiment.get_counters()))
+    report_cache_key = '%s:reports' % experiment.key().name()
+    reports = memcache.get(report_cache_key)
+    if reports is None:
+      reports = experiment.get_counters()
+      if not memcache.add(report_cache_key, reports):
+        logging.error("Cannot set memcache key")
+    self.render('report.html', experiment=experiment, reports=reports)
     # self.render('report.html', experiment=experiment)
 
 
