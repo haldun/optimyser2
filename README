@@ -1,1 +1,1 @@
-Dependencies: tornado, wtforms.
+A/B testing tool running on Google App Engine.
